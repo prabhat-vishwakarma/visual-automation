@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authorized Test Page</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f4f6f8; display: flex;
+           justify-content: center; padding: 60px 20px; }
+    .card { background: #ffffff; border: 1px solid #dde3e8; border-radius: 12px;
+            padding: 40px; max-width: 420px; width: 100%; text-align: center;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+    h1 { font-size: 1.3rem; margin-bottom: 4px; }
+    p.note { color: #64748b; font-size: 0.85rem; margin-bottom: 20px; }
+    img { border: 2px solid #e2e8f0; border-radius: 8px; background: #0f172a;
+          padding: 6px; margin-bottom: 20px; }
+    input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px;
+            font-size: 1.2rem; letter-spacing: 4px; text-transform: uppercase;
+            text-align: center; box-sizing: border-box; }
+    button { margin-top: 14px; width: 100%; padding: 12px; background: #2563eb;
+             color: #fff; border: none; border-radius: 8px; font-size: 1rem;
+             cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    .status { margin-top: 16px; font-weight: 600; }
+    .success { color: #16a34a; }
+    .error   { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Verification required</h1>
+    <p class="note">Authorized local test environment. Read the code below and enter it.</p>
+
+    <img data-testid="verification-image" src="/challenge.png" alt="Verification code" width="240">
+
+    <input data-testid="verification-input" maxlength="5" autocomplete="off"
+           aria-label="Verification code" placeholder="CODE">
+
+    <button data-testid="continue-button" type="button">Continue</button>
+
+    <div data-testid="next-step" class="status success" style="display:none;">Verified &mdash; next step loaded.</div>
+    <div data-testid="verification-error" class="status error" style="display:none;">Code rejected. Please retry.</div>
+  </div>
+
+  <script>
+    const EXPECTED = "{{CODE}}";
+    const input = document.querySelector('[data-testid="verification-input"]');
+    const button = document.querySelector('[data-testid="continue-button"]');
+    const next = document.querySelector('[data-testid="next-step"]');
+    const error = document.querySelector('[data-testid="verification-error"]');
+
+    button.addEventListener("click", function () {
+      error.style.display = "none";
+      const value = input.value.trim().toUpperCase();
+      if (value === EXPECTED) {
+        next.style.display = "block";
+      } else {
+        error.style.display = "block";
+      }
+    });
+  </script>
+</body>
+</html>

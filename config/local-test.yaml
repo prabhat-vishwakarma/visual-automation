@@ -1,0 +1,46 @@
+browser:
+  browser: chromium
+  headless: true
+  persistent_profile: "./runtime/browser-profile-local-test"
+  navigation_timeout_ms: 15000
+
+target:
+  start_url: "http://127.0.0.1:8800/"
+
+authentication:
+  mode: manual
+  authenticated_selector: null
+  wait_timeout_seconds: 5
+
+selectors:
+  challenge_image: '[data-testid="verification-image"]'
+  challenge_input: '[data-testid="verification-input"]'
+  continue_button: '[data-testid="continue-button"]'
+  success_element: '[data-testid="next-step"]'
+  rejection_element: '[data-testid="verification-error"]'
+
+ocr:
+  model: "PP-OCRv5_mobile_rec"
+  min_confidence: 0.70
+  expected_regex: "^[A-Z0-9]{5}$"
+  lang: "en"
+  max_attempts: 3
+
+preprocessing:
+  variants:
+    - raw
+    - upscale
+    - grayscale_contrast
+
+workflow:
+  target_wait_timeout_seconds: 10
+  page_retry_limit: 1
+  navigation_retry_limit: 1
+  submit_retry_limit: 1
+  post_submit_timeout_seconds: 5
+  capture_retry_limit: 1
+
+artifacts:
+  save_failures: true
+  save_success_images: true
+  root: "./artifacts"

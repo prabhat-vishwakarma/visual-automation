@@ -1,0 +1,11 @@
+playwright
+paddleocr
+paddlepaddle
+opencv-python
+numpy<2
+PyYAML
+pydantic
+
+# dev
+pytest
+pytest-asyncio

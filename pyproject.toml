@@ -1,0 +1,45 @@
+[project]
+name = "visual-automation"
+version = "0.1.0"
+description = "Deterministic browser automation with local OCR (PP-OCR) for authorized test environments."
+requires-python = ">=3.11"
+dependencies = [
+    "playwright",
+    "paddleocr",
+    "paddlepaddle",
+    "opencv-python",
+    "numpy<2",
+    "PyYAML",
+    "pydantic",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "RUF", "S110", "PLW1510", "ASYNC251"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S110"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "slow: tests that require model download or full browser integration",
+]
