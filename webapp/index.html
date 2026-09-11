@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual Automation — Live Demo</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #171a23; --line: #262b3a;
+    --text: #e6e9f0; --muted: #8b93a7; --accent: #4f8cff;
+    --ok: #35c767; --err: #ff5c5c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 15px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--bg); color: var(--text); padding: 32px 20px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .card {
+    width: 100%; max-width: 860px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 20px;
+    margin-top: 20px;
+  }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  select, button {
+    background: #10131b; color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 12px; font: inherit; cursor: pointer;
+  }
+  button.run { background: var(--accent); border: none; font-weight: 600; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  #status { margin-left: auto; color: var(--muted); font-size: 13px; }
+  #result { margin-top: 14px; display: none; }
+  #result .state { font-size: 16px; font-weight: 700; }
+  .ok { color: var(--ok); } .err { color: var(--err); }
+  .kv {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px; margin-top: 12px; font-size: 13px;
+  }
+  .kv div { background: #10131b; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .kv .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .kv .v { font-weight: 600; }
+  #log {
+    margin-top: 14px; height: 260px; overflow: auto; background: #0a0c11;
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+    font-size: 12px; white-space: pre-wrap; word-break: break-word;
+  }
+  #log .ev { color: #6ea8ff; } #log .ns { color: var(--muted); }
+  img.gif { width: 100%; margin-top: 14px; border: 1px solid var(--line); border-radius: 8px; }
+  .warn { border: 1px solid var(--line); color: #e0b45e; font-size: 12px; }
+  a { color: var(--accent); }
+  .pills { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .pill { font-size: 11px; border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>Visual Automation — live demo</h1>
+<div class="sub">OCR + Playwright reading a generated image-code, filling it, and verifying — in your browser.</div>
+
+<div class="card">
+  <div class="sub" style="margin-bottom:8px">
+    <strong style="color:#e0b45e">Scope:</strong> runs only the <em>bundled local test page</em>
+    (127.0.0.1). No third-party or production sites.
+  </div>
+  <div class="row">
+    <select id="config">
+      <option value="local-test">local-test (headless)</option>
+      <option value="demo">demo (visible browser window)</option>
+    </select>
+    <button class="run" id="run">▶ Run demo</button>
+    <span id="status"></span>
+  </div>
+
+  <div id="result">
+    <div class="state">State: <span id="res-state">—</span></div>
+    <div class="kv">
+      <div><div class="k">OCR text</div><div class="v" id="res-text">—</div></div>
+      <div><div class="k">Confidence</div><div class="v" id="res-conf">—</div></div>
+      <div><div class="k">Outcome</div><div class="v" id="res-out">—</div></div>
+      <div><div class="k">Exit code</div><div class="v" id="res-code">—</div></div>
+    </div>
+  </div>
+
+  <div id="log"></div>
+
+  <img class="gif" src="assets/demo.gif" alt="Demo animation">
+  <div class="pills">
+    <span class="pill">PP-OCRv5 on CPU</span>
+    <span class="pill">Playwright + OpenCV</span>
+    <span class="pill">Local first, no VLM</span>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const runBtn = $('run'), statusEl = $('status'), logEl = $('log'), resultEl = $('result');
+let active = false;
+
+function line(text, cls = '') {
+  const div = document.createElement('div');
+  if (cls) div.className = cls;
+  div.textContent = text;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function parse(record) {
+  const map = {};
+  for (const [k, v] of Object.entries(record)) {
+    if (['event', 'state', 'text', 'confidence', 'outcome', 'success', 'attempts'].includes(k)) map[k] = v;
+  }
+  return map;
+}
+
+runBtn.addEventListener('click', async () => {
+  if (active) return;
+  active = true;
+  runBtn.disabled = true;
+  resultEl.style.display = 'none';
+  logEl.innerHTML = '';
+  statusEl.textContent = 'starting run…';
+
+  const res = await fetch('/api/run?config=' + $('config').value);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    statusEl.textContent = body.detail || ('HTTP ' + res.status);
+    active = false; runBtn.disabled = false;
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let seen = 0;
+
+  const pump = async () => {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf('\n\n')) !== -1) {
+        const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
+        if (!chunk.startsWith('data: ')) continue;
+        let payload;
+        try { payload = JSON.parse(chunk.slice(6)); } catch { continue; }
+
+        if (payload.kind === 'started') statusEl.textContent = 'running (pid ' + payload.pid + ')…';
+        else if (payload.kind === 'event') {
+          line(payload.line, 'ev'); seen++;
+          let rec = null;
+          try { rec = JSON.parse(payload.line); } catch {}
+          if (rec && typeof rec === 'object') {
+            const m = parse(rec);
+            if (m.state) $('res-state').textContent = String(m.state);
+            if (m.text) $('res-text').textContent = String(m.text);
+            if (m.confidence != null) $('res-conf').textContent = Number(m.confidence).toFixed(2);
+            if (m.outcome) $('res-out').textContent = String(m.outcome);
+            if (seen % 3 === 0) statusEl.textContent = 'running — ' + seen + ' events';
+          }
+        } else if (payload.kind === 'exit') {
+          const ok = payload.code === 0;
+          $('res-code').textContent = String(payload.code);
+          $('res-state').classList.toggle('ok', ok);
+          $('res-state').classList.toggle('err', !ok);
+          if (ok) { statusEl.textContent = 'COMPLETE ✓'; } else { statusEl.textContent = 'FAILED ✗'; }
+          resultEl.style.display = 'block';
+        }
+      }
+    }
+    line('— run finished —');
+    active = false;
+    runBtn.disabled = false;
+  };
+  pump();
+});
+</script>
+</body>
+</html>

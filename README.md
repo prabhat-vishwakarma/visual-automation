@@ -44,6 +44,19 @@ verified without any external site:
 
 Or point `config/site.yaml` at any application you own / have permission to automate.
 
+## Web demo (owner-gated, localhost only)
+
+A small FastAPI page that runs the bundled test harness right in your browser,
+streaming live OCR events (state changes, text, confidence, outcome):
+
+```bash
+.venv/bin/pip install -r webapp/requirements.txt
+webapp/run_webapp.sh          # opens http://127.0.0.1:8710
+```
+
+The server binds strictly to `127.0.0.1`, only runs the two bundled configs, and
+auto-starts the local test site. It is not a public service.
+
 ## Architecture
 
 ```
