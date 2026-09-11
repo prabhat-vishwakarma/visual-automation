@@ -24,6 +24,14 @@ python3 -m venv .venv
 `run.sh` handles the Chromium library setup automatically (see below).
 Exit code `0` on success, non-zero with diagnostics on failure.
 
+## See it work
+
+![Demo: challenge page reads the code, fills it, and verifies](assets/demo.gif)
+
+The animation shows the three steps on the bundled local test page:
+the verification image appears, the code is read by OCR and filled in,
+and the workflow clicks Continue and confirms success — fully automatic.
+
 ## Run the bundled local test harness
 
 The repository ships an authorized local test page + config so the whole flow can be
